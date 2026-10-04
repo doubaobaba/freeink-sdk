@@ -51,6 +51,13 @@ class SecureClient : public Client {
   // True if the library was built with wolfSSL TLS 1.3 support enabled.
   static bool tls13Available();
 
+  // Numeric diagnostics survive stop(), so callers can report a failed request
+  // after freeing TLS memory. No host, token, or peer payload is retained.
+  enum class ErrorStage : uint8_t { None, Tcp, Context, Trust, Session, Hostname, Handshake, Timeout, Write, Read };
+  ErrorStage lastErrorStage() const { return _errorStage; }
+  int lastError() const { return _lastError; }
+  int firstHandshakeError() const { return _firstHandshakeError; }
+
  private:
   int connectWithMethod(const char* host, uint16_t port, void* method, const char* label);
 
@@ -60,6 +67,9 @@ class SecureClient : public Client {
   void* _ssl = nullptr;  // WOLFSSL* (opaque to keep wolfSSL headers out of here)
   void* _ctx = nullptr;  // WOLFSSL_CTX*
   bool _connected = false;
+  ErrorStage _errorStage = ErrorStage::None;
+  int _lastError = 0;
+  int _firstHandshakeError = 0;
 };
 
 }  // namespace freeink
